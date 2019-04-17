@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/base64"
 	"io"
 	"os"
@@ -10,10 +11,10 @@ type reader struct {
 	in io.Reader
 }
 
-func (r *reader) Read(p []byte) (n int, err error) {
+func (r reader) Read(p []byte) (n int, err error) {
 	n, err = r.in.Read(p)
 
-	for i := n; i > 0; i-- {
+	for i := 0; i < n; i++ {
 		switch p[i] {
 		// Map - to +
 		case 0x2D:
@@ -24,15 +25,19 @@ func (r *reader) Read(p []byte) (n int, err error) {
 		// Strip =
 		case 0x3D:
 			n = i
-			p = p[:i]
+			break
 		default:
 		}
+	}
+
+	if n == 0 {
+		err = io.EOF
 	}
 
 	return
 }
 
 func main() {
-	in := reader{os.Stdin}
-	io.Copy(os.Stdout, base64.NewDecoder(base64.RawStdEncoding, &in))
+	in := bufio.NewReader(reader{os.Stdin})
+	io.Copy(os.Stdout, base64.NewDecoder(base64.RawStdEncoding, in))
 }
